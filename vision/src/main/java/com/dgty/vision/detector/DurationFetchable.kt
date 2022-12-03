@@ -1,4 +1,3 @@
-package com.example.camerax_mlkit.detector
 
 /**
  * Title: DurationFetchable

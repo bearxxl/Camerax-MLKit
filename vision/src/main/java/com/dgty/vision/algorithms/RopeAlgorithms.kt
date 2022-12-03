@@ -1,7 +1,6 @@
-package com.example.camerax_mlkit.algorithms
 
 import com.blankj.utilcode.util.LogUtils
-import com.example.camerax_mlkit.bean.JumpType
+import com.dgty.vision.bean.JumpType
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
 import java.lang.Math.abs

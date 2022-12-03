@@ -1,4 +1,3 @@
-package com.example.camerax_mlkit.algorithms
 
 import androidx.lifecycle.MutableLiveData
 import com.google.mlkit.vision.pose.Pose

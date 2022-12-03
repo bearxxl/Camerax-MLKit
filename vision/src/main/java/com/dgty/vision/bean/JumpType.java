@@ -1,5 +1,5 @@
 
-package com.example.camerax_mlkit.bean;
+package com.dgty.vision.bean;
 
 
 import androidx.annotation.IntDef;
