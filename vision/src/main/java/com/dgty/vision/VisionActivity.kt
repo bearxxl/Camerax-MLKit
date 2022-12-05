@@ -4,9 +4,14 @@ import RopeAlgorithms
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Size
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.AspectRatio
+import androidx.camera.core.CameraSelector
 import androidx.camera.mlkit.vision.MlKitAnalyzer
+import androidx.camera.view.CameraController
 import androidx.camera.view.CameraController.COORDINATE_SYSTEM_VIEW_REFERENCED
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
@@ -15,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import com.blankj.utilcode.util.GsonUtils
 import com.blankj.utilcode.util.LogUtils
+import com.blankj.utilcode.util.SnackbarUtils
 import com.dgty.vision.base.SupportActivity
 import com.dgty.vision.databinding.ActivityVisionBinding
 import com.google.mlkit.vision.pose.PoseDetection
@@ -28,6 +34,10 @@ class VisionActivity : SupportActivity<ActivityVisionBinding>() {
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var poseDetector: PoseDetector
     private lateinit var ropeAlgorithms: RopeAlgorithms
+    lateinit var snackbarUtils: SnackbarUtils
+
+    //摄像头
+    private var lensFacing: Int = CameraSelector.LENS_FACING_BACK
 
     override fun initView(savedInstanceState: Bundle?) {
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -44,17 +54,19 @@ class VisionActivity : SupportActivity<ActivityVisionBinding>() {
 
     override fun initData() {
     }
+
     private fun startCamera() {
         var cameraController = LifecycleCameraController(baseContext)
-        val previewView: PreviewView = mBinding.viewFinder
-
+        var previewView: PreviewView = mBinding.viewFinder
+        snackbarUtils = SnackbarUtils.with(mBinding.viewFinder).setMessage("请全身进入屏幕框内").setDuration(SnackbarUtils.LENGTH_INDEFINITE)
+        showWarn()
         val options = PoseDetectorOptions.Builder()
             .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
             .build()
         poseDetector = PoseDetection.getClient(options);
         ropeAlgorithms = RopeAlgorithms()
         ropeAlgorithms.count.observe(this, Observer {
-            mBinding.tvCount.text = it.toString()+"个"
+            mBinding.tvCount.text = it.toString() + "个"
         })
         cameraController.setImageAnalysisAnalyzer(
             ContextCompat.getMainExecutor(this),
@@ -67,38 +79,39 @@ class VisionActivity : SupportActivity<ActivityVisionBinding>() {
 
                 if (results != null) {
                     LogUtils.dTag("xxl", GsonUtils.toJson(results))
+                    if (results.allPoseLandmarks.size >= 33) {
+                        SnackbarUtils.dismiss()
+                    } else {
+//                        showWarn()
+                    }
                     ropeAlgorithms.calculate(results)
 
                 }
             }
         )
+        //预览尺寸
+        var outPutSize = CameraController.OutputSize(Size(1920, 1080))
+        cameraController.previewTargetSize = outPutSize
+
+        LogUtils.dTag("xxlsize",outPutSize.toString())
 
         cameraController.bindToLifecycle(this)
         previewView.controller = cameraController
     }
 
-    /*  fun decode(imageProxy: ImageProxy) {
-          var image = imageProxy.image
-          LogUtils.dTag("xxl", GsonUtils.toJson(image))
-          var rotationDegrees = imageProxy.imageInfo.rotationDegrees
-          if (image != null) {
-              var mediaImage =
-                  InputImage.fromMediaImage(image, rotationDegrees)
-
-              poseDetector.process(mediaImage).addOnSuccessListener {
-                  LogUtils.dTag("xxl", GsonUtils.toJson(it))
-
-              }.addOnFailureListener {
-                  ToastUtils.showLong(it.message)
-              }
-          }
-
-      }*/
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(
             baseContext, it
         ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun showWarn() {
+        if (snackbarUtils == null) {
+            snackbarUtils = SnackbarUtils.with(mBinding.viewFinder).setMessage("请全身进入屏幕框内").setDuration(SnackbarUtils.LENGTH_INDEFINITE)
+
+        }
+        snackbarUtils.show()
     }
 
     override fun onDestroy() {
@@ -134,8 +147,6 @@ class VisionActivity : SupportActivity<ActivityVisionBinding>() {
             }
         }
     }
-
-
 
 
 }

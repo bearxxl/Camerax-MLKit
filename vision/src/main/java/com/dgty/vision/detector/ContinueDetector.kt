@@ -2,7 +2,7 @@ import com.dgty.vision.bean.State
 
 /**
  * Title: ContinueDetector
- * Description:
+ * Description: 不连续检测器
  * Copyright (c) 即刻动身版权所有
  * Created DateTime: 2022-12-01 15:22
  * Created by xxl.
