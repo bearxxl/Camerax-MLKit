@@ -31,7 +31,6 @@ class RopeAlgorithms : BaseAlgorithms() {
     var lastState: Int = 0
 
     /// A Time taken for action.
-    private var actionDuration: Long = 0
     var lastTime = 0L
     var nowTime = 0L
     var sampleSize = 5 //样本数据

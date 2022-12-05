@@ -5,6 +5,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Size
+import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -17,6 +18,7 @@ import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.Observer
 import com.blankj.utilcode.util.GsonUtils
 import com.blankj.utilcode.util.LogUtils
@@ -25,6 +27,7 @@ import com.dgty.vision.base.SupportActivity
 import com.dgty.vision.databinding.ActivityVisionBinding
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
+import com.google.mlkit.vision.pose.PoseLandmark
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -35,6 +38,7 @@ class VisionActivity : SupportActivity<ActivityVisionBinding>() {
     private lateinit var poseDetector: PoseDetector
     private lateinit var ropeAlgorithms: RopeAlgorithms
     lateinit var snackbarUtils: SnackbarUtils
+
 
     //摄像头
     private var lensFacing: Int = CameraSelector.LENS_FACING_BACK
@@ -58,8 +62,8 @@ class VisionActivity : SupportActivity<ActivityVisionBinding>() {
     private fun startCamera() {
         var cameraController = LifecycleCameraController(baseContext)
         var previewView: PreviewView = mBinding.viewFinder
-        snackbarUtils = SnackbarUtils.with(mBinding.viewFinder).setMessage("请全身进入屏幕框内").setDuration(SnackbarUtils.LENGTH_INDEFINITE)
-        showWarn()
+        mBinding.llBottom.visibility = View.VISIBLE
+        showWarn(true)
         val options = PoseDetectorOptions.Builder()
             .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
             .build()
@@ -79,13 +83,15 @@ class VisionActivity : SupportActivity<ActivityVisionBinding>() {
 
                 if (results != null) {
                     LogUtils.dTag("xxl", GsonUtils.toJson(results))
-                    if (results.allPoseLandmarks.size >= 33) {
-                        SnackbarUtils.dismiss()
+                    if (checkAllPose(results.allPoseLandmarks)) {
+                        showWarn(false)
                     } else {
-//                        showWarn()
+                        showWarn(true)
                     }
                     ropeAlgorithms.calculate(results)
 
+                } else {
+                    showWarn(true)
                 }
             }
         )
@@ -93,12 +99,27 @@ class VisionActivity : SupportActivity<ActivityVisionBinding>() {
         var outPutSize = CameraController.OutputSize(Size(1920, 1080))
         cameraController.previewTargetSize = outPutSize
 
-        LogUtils.dTag("xxlsize",outPutSize.toString())
+        LogUtils.dTag("xxlsize", outPutSize.toString())
 
         cameraController.bindToLifecycle(this)
         previewView.controller = cameraController
     }
 
+
+    // 是否全身骨骼点都在
+    private fun checkAllPose(poseList: List<PoseLandmark>): Boolean {
+        var result = false
+        if (poseList != null && poseList.size >= 33) {
+            result = true
+            for (mark in poseList) {
+                if (null == mark || mark.position3D == null) {
+                    result = false
+                }
+            }
+        }
+        LogUtils.dTag("xxl", "checkAllPose = " + result)
+        return result
+    }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(
@@ -106,12 +127,19 @@ class VisionActivity : SupportActivity<ActivityVisionBinding>() {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    fun showWarn() {
-        if (snackbarUtils == null) {
-            snackbarUtils = SnackbarUtils.with(mBinding.viewFinder).setMessage("请全身进入屏幕框内").setDuration(SnackbarUtils.LENGTH_INDEFINITE)
-
+    fun showWarn(boolean: Boolean) {
+        LogUtils.dTag("xxl", "showWarn = " + boolean)
+        if (boolean) {
+            mBinding.llBottom.visibility = View.VISIBLE
+        } else {
+            mBinding.llBottom.visibility = View.GONE
         }
-        snackbarUtils.show()
+
+    }
+
+    override fun onPause() {
+        super.onPause()
+
     }
 
     override fun onDestroy() {
